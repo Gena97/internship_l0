@@ -16,7 +16,7 @@ func sender() {
 	}
 	defer sc.Close()
 
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 
 	for {
 		select {
