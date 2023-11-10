@@ -1,0 +1,98 @@
+Requests      [total, rate, throughput]         500, 50.07, 50.06
+Duration      [total, attack, wait]             9.987s, 9.987s, 173.3µs
+Latencies     [min, mean, 50, 90, 95, 99, max]  172.9µs, 225.106µs, 196.782µs, 287.425µs, 322.361µs, 516.85µs, 12.289ms
+Bytes In      [total, mean]                     235500, 471.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:500
+Error Set:
+
+Requests      [total, rate, throughput]         1999, 199.82, 199.82
+Duration      [total, attack, wait]             10.004s, 10.004s, 183.7µs
+Latencies     [min, mean, 50, 90, 95, 99, max]  146.7µs, 195.545µs, 191.818µs, 275.636µs, 308.099µs, 441.145µs, 13.603ms
+Bytes In      [total, mean]                     941529, 471.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:1999
+Error Set:
+
+Requests      [total, rate, throughput]         4000, 399.98, 399.97
+Duration      [total, attack, wait]             10.001s, 10.001s, 180µs
+Latencies     [min, mean, 50, 90, 95, 99, max]  180µs, 233.416µs, 191.965µs, 292.78µs, 342.275µs, 567.928µs, 13.756ms
+Bytes In      [total, mean]                     1884000, 471.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:4000
+Error Set:
+
+Requests      [total, rate, throughput]         7992, 799.49, 799.48
+Duration      [total, attack, wait]             9.997s, 9.996s, 175.4µs
+Latencies     [min, mean, 50, 90, 95, 99, max]  175.4µs, 249.072µs, 212.166µs, 357.854µs, 433.448µs, 706.528µs, 12.736ms
+Bytes In      [total, mean]                     3764232, 471.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:7992
+Error Set:
+
+C:\Users\Gena\go\src\internship_l0\vegeta>vegeta attack -targets=targets.txt -rate=1600 -duration=10s > results.bin && type results.bin | vegeta report
+Requests      [total, rate, throughput]         15997, 1598.29, 1598.26
+Duration      [total, attack, wait]             10.009s, 10.009s, 190.4µs
+Latencies     [min, mean, 50, 90, 95, 99, max]  109.4µs, 437.335µs, 386.654µs, 660.745µs, 854.108µs, 1.304ms, 13.234ms
+Bytes In      [total, mean]                     7534587, 471.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:15997
+Error Set:
+
+Requests      [total, rate, throughput]         31990, 3197.31, 3197.23
+Duration      [total, attack, wait]             10.006s, 10.005s, 244.9µs
+Latencies     [min, mean, 50, 90, 95, 99, max]  244.9µs, 891.882µs, 946.089µs, 1.382ms, 1.689ms, 2.283ms, 16.068ms
+Bytes In      [total, mean]                     15067290, 471.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:31990
+Error Set:
+
+C:\Users\Gena\go\src\internship_l0\vegeta>vegeta attack -targets=targets.txt -rate=6400 -duration=10s > results.bin && type results.bin | vegeta report
+Requests      [total, rate, throughput]         63999, 6400.04, 6399.95
+Duration      [total, attack, wait]             10s, 10s, 132.9µs
+Latencies     [min, mean, 50, 90, 95, 99, max]  132.9µs, 1.303ms, 1.357ms, 2.222ms, 2.624ms, 3.299ms, 8.169ms
+Bytes In      [total, mean]                     30143529, 471.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:63999
+Error Set:
+
+Requests      [total, rate, throughput]         199834, 19984.95, 19984.95
+Duration      [total, attack, wait]             9.999s, 9.999s, 0s
+Latencies     [min, mean, 50, 90, 95, 99, max]  0s, 2.856ms, 2.146ms, 6.126ms, 7.515ms, 10.334ms, 47.172ms
+Bytes In      [total, mean]                     94121814, 471.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:199834
+Error Set:
+
+Requests      [total, rate, throughput]         299992, 29998.93, 29993.74
+Duration      [total, attack, wait]             10.002s, 10s, 1.729ms
+Latencies     [min, mean, 50, 90, 95, 99, max]  634.9µs, 2.678ms, 1.041ms, 7.538ms, 9.98ms, 16.054ms, 81.226ms
+Bytes In      [total, mean]                     141296232, 471.00
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           100.00%
+Status Codes  [code:count]                      200:299992
+Error Set:
+
+На rate = 20000 отвалился
+
+Requests      [total, rate, throughput]         189578, 18827.92, 1384.86
+Duration      [total, attack, wait]             29.293s, 10.069s, 19.224s
+Latencies     [min, mean, 50, 90, 95, 99, max]  553.2µs, 893.66ms, 25.836ms, 2.388s, 2.502s, 27.503s, 27.703s
+Bytes In      [total, mean]                     19106586, 100.78
+Bytes Out     [total, mean]                     0, 0.00
+Success       [ratio]                           21.40%
+Status Codes  [code:count]                      0:149012  200:40566
+Error Set:
+Get "http://127.0.0.1:8080/order?id=b563feb7b2b84b6test": dial tcp 0.0.0.0:0->127.0.0.1:8080: connectex: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+Get "http://127.0.0.1:8080/order?id=b563feb7b2b84b6test": dial tcp 0.0.0.0:0->127.0.0.1:8080: connectex: No connection could be made because the target machine actively refused it.
+Get "http://127.0.0.1:8080/order?id=b563feb7b2b84b6test": dial tcp 0.0.0.0:0->127.0.0.1:8080: bind: An operation on a socket could not be performed because the system lacked sufficient buffer space or because a queue was full.
+
+
