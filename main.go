@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -82,6 +83,10 @@ const (
 	clientID    = "your_client_id_2"
 	subject     = "your_subject"
 	durableName = "durable-order-sub"
+	dbUser      = "Admin_Gena"
+	dbPassword  = "pass"
+	dbName      = "orders_db"
+	dbPort      = 5433
 )
 
 // Основная функция приложения
@@ -111,7 +116,7 @@ func main() {
 
 // Функция подключения к базе данных
 func connectToDB() error {
-	connStr := "user=Admin_Gena password=pass dbname=orders_db sslmode=disable port=5433"
+	connStr := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable port=%d", dbUser, dbPassword, dbName, dbPort)
 	var err error
 	db, err = pgx.Connect(context.Background(), connStr)
 
@@ -191,7 +196,6 @@ func saveOrder(order Order) {
 		log.Printf("Ошибка начала транзакции: %v", err)
 		return
 	}
-	defer tx.Rollback(context.Background())
 
 	// Вставка данных в таблицу orders
 	_, err = tx.Exec(context.Background(), "INSERT INTO orders VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
@@ -199,6 +203,7 @@ func saveOrder(order Order) {
 		order.InternalSignature, order.CustomerID, order.ShardKey, order.SmID, order.DateCreated, order.OOFShard)
 	if err != nil {
 		log.Printf("Ошибка сохранения заказа в PostgreSQL: %v", err)
+		tx.Rollback(context.Background()) // Откатить транзакцию при ошибке
 		return
 	}
 
@@ -208,6 +213,7 @@ func saveOrder(order Order) {
 		order.Delivery.Address, order.Delivery.Region, order.Delivery.Email)
 	if err != nil {
 		log.Printf("Ошибка сохранения информации о доставке в PostgreSQL: %v", err)
+		tx.Rollback(context.Background()) // Откатить транзакцию при ошибке
 		return
 	}
 
@@ -219,6 +225,7 @@ func saveOrder(order Order) {
 
 	if err != nil {
 		log.Printf("Ошибка сохранения информации о платеже в PostgreSQL: %v", err)
+		tx.Rollback(context.Background()) // Откатить транзакцию при ошибке
 		return
 	}
 
@@ -229,6 +236,7 @@ func saveOrder(order Order) {
 			item.TotalPrice, item.NmID, item.Brand, item.Status)
 		if err != nil {
 			log.Printf("Ошибка сохранения информации о товаре в PostgreSQL: %v", err)
+			tx.Rollback(context.Background()) // Откатить транзакцию при ошибке
 			return
 		}
 	}
@@ -237,6 +245,8 @@ func saveOrder(order Order) {
 	err = tx.Commit(context.Background())
 	if err != nil {
 		log.Printf("Ошибка подтверждения транзакции: %v", err)
+		tx.Rollback(context.Background()) // Откатить транзакцию при ошибке
+		return
 	}
 }
 

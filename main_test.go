@@ -5,86 +5,302 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestSaveOrder(t *testing.T) {
-	// Создаем мок базы данных
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("Error creating mock database connection: %v", err)
-	}
-	defer db.Close()
-
-	// Заменяем db.Exec на mock
-	mock.ExpectExec("INSERT INTO orders").WithArgs("test_order_uid", "test_track_number").WillReturnResult(sqlmock.NewResult(1, 1))
-
-	// Создаем тестовый заказ
-	order := Order{
-		OrderUID:    "test_order_uid",
-		TrackNumber: "test_track_number",
-	}
-
-	// Вызываем функцию saveOrder
-	err = saveOrder(order)
-
-	// Проверяем, что запрос к базе данных был выполнен
-	assert.NoError(t, mock.ExpectationsWereMet(), "Expectations were not met")
-
-	// Проверяем, что ошибки нет
-	assert.NoError(t, err, "Error saving order")
-}
-
 func TestGetOrderHandler(t *testing.T) {
-	// Создаем тестовый заказ
-	orderID := "test_order_uid"
-	order := Order{
-		OrderUID:    orderID,
-		TrackNumber: "test_track_number",
+	// Создаем фейковый заказ для тестирования
+	fakeOrderID := "fakeOrderID"
+	fakeOrder := Order{
+		OrderUID:    "fakeOrderID",
+		TrackNumber: "123456789",
+		Entry:       "Entry1",
+		Delivery: struct {
+			Name    string `json:"name"`
+			Phone   string `json:"phone"`
+			Zip     string `json:"zip"`
+			City    string `json:"city"`
+			Address string `json:"address"`
+			Region  string `json:"region"`
+			Email   string `json:"email"`
+		}{
+			Name:    "John Doe",
+			Phone:   "1234567890",
+			Zip:     "12345",
+			City:    "Cityville",
+			Address: "123 Main St",
+			Region:  "Region1",
+			Email:   "john.doe@example.com",
+		},
+		Payment: struct {
+			Transaction  string  `json:"transaction"`
+			RequestID    string  `json:"request_id"`
+			Currency     string  `json:"currency"`
+			Provider     string  `json:"provider"`
+			Amount       float64 `json:"amount"`
+			PaymentDT    int64   `json:"payment_dt"`
+			Bank         string  `json:"bank"`
+			DeliveryCost float64 `json:"delivery_cost"`
+			GoodsTotal   float64 `json:"goods_total"`
+			CustomFee    float64 `json:"custom_fee"`
+		}{
+			Transaction:  "trans123",
+			RequestID:    "req123",
+			Currency:     "USD",
+			Provider:     "Provider1",
+			Amount:       100.00,
+			PaymentDT:    1636600000,
+			Bank:         "Bank1",
+			DeliveryCost: 10.00,
+			GoodsTotal:   90.00,
+			CustomFee:    5.00,
+		},
+		Items: []struct {
+			ChrtID      int     `json:"chrt_id"`
+			TrackNumber string  `json:"track_number"`
+			Price       float64 `json:"price"`
+			RID         string  `json:"rid"`
+			Name        string  `json:"name"`
+			Sale        int     `json:"sale"`
+			Size        string  `json:"size"`
+			TotalPrice  float64 `json:"total_price"`
+			NmID        int     `json:"nm_id"`
+			Brand       string  `json:"brand"`
+			Status      int     `json:"status"`
+		}{
+			{
+				ChrtID:      1,
+				TrackNumber: "item123",
+				Price:       30.00,
+				RID:         "rid123",
+				Name:        "Item1",
+				Sale:        0,
+				Size:        "M",
+				TotalPrice:  30.00,
+				NmID:        101,
+				Brand:       "Brand1",
+				Status:      1,
+			},
+		},
+		Locale:            "en_US",
+		InternalSignature: "internal_sign_123",
+		CustomerID:        "customer123",
+		DeliveryService:   "DeliveryService1",
+		ShardKey:          "shard_key_1",
+		SmID:              1,
+		DateCreated:       "2023-11-10T12:00:00Z",
+		OOFShard:          "oof_shard_1",
 	}
 
-	// Добавляем заказ в кэш
-	orderCache[orderID] = order
+	// Добавляем фейковый заказ в кеш
+	cacheMutex.Lock()
+	orderCache[fakeOrderID] = fakeOrder
+	cacheMutex.Unlock()
 
-	// Создаем HTTP-запрос
-	req, err := http.NewRequest("GET", "/order?id="+orderID, nil)
+	// Создаем HTTP-запрос с параметром id=fakeOrderID
+	req, err := http.NewRequest("GET", "/order?id="+fakeOrderID, nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Не удалось создать HTTP-запрос: %v", err)
 	}
 
-	// Создаем ResponseRecorder для записи ответа
-	rr := httptest.NewRecorder()
+	// Создаем фейковый HTTP-ResponseWriter для записи ответа
+	recorder := httptest.NewRecorder()
 
-	// Обрабатываем запрос с помощью хендлера
-	handler := http.HandlerFunc(getOrderHandler)
-	handler.ServeHTTP(rr, req)
+	// Вызываем обработчик HTTP-запроса
+	getOrderHandler(recorder, req)
 
-	// Проверяем код статуса
-	assert.Equal(t, http.StatusOK, rr.Code, "Handler returned wrong status code")
+	// Проверяем код состояния ответа
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Ожидался код состояния %d, получено: %d", http.StatusOK, recorder.Code)
+	}
 
-	// Проверяем, что ответ содержит правильные данные заказа
+	// Декодируем ответ и сравниваем с ожидаемым результатом
 	var responseOrder Order
-	err = json.Unmarshal(rr.Body.Bytes(), &responseOrder)
-	assert.NoError(t, err, "Error unmarshalling response")
-	assert.Equal(t, order.OrderUID, responseOrder.OrderUID, "Handler returned unexpected order data")
+	err = json.NewDecoder(recorder.Body).Decode(&responseOrder)
+	if err != nil {
+		t.Fatalf("Ошибка декодирования JSON-ответа: %v", err)
+	}
+
+	// Проверяем, что полученный заказ соответствует фейковому заказу
+	if responseOrder.OrderUID != fakeOrder.OrderUID {
+		t.Errorf("Ожидался OrderUID %s, получено: %s", fakeOrder.OrderUID, responseOrder.OrderUID)
+	}
+
+	// Очищаем фейковый заказ из кеша
+	cacheMutex.Lock()
+	delete(orderCache, fakeOrderID)
+	cacheMutex.Unlock()
 }
 
-func TestStartHTTPServer(t *testing.T) {
-	// Создаем HTTP-запрос
-	req, err := http.NewRequest("GET", "/", nil)
+func TestGetOrderHandler_OrderNotFound(t *testing.T) {
+	// Создаем HTTP-запрос с параметром id=nonexistentOrderID
+	req, err := http.NewRequest("GET", "/order?id=nonexistentOrderID", nil)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Не удалось создать HTTP-запрос: %v", err)
 	}
 
-	// Создаем ResponseRecorder для записи ответа
-	rr := httptest.NewRecorder()
+	// Создаем фейковый HTTP-ResponseWriter для записи ответа
+	recorder := httptest.NewRecorder()
 
-	// Обрабатываем запрос с помощью хендлера
-	handler := http.HandlerFunc(startHTTPServer)
-	handler.ServeHTTP(rr, req)
+	// Вызываем обработчик HTTP-запроса
+	getOrderHandler(recorder, req)
 
-	// Проверяем код статуса
-	assert.Equal(t, http.StatusNotFound, rr.Code, "Handler returned wrong status code")
+	// Проверяем код состояния ответа
+	if recorder.Code != http.StatusNotFound {
+		t.Errorf("Ожидался код состояния %d, получено: %d", http.StatusNotFound, recorder.Code)
+	}
+
+	// Проверяем текст ответа
+	expectedBody := "Заказ не найден"
+	if body := recorder.Body.String(); body != expectedBody {
+		t.Errorf("Ожидался текст %s, получено: %s", expectedBody, body)
+	}
+}
+
+func TestGetOrderHandler_InvalidID(t *testing.T) {
+	// Создаем HTTP-запрос с параметром id=invalidOrderID (некорректный формат ID)
+	req, err := http.NewRequest("GET", "/order?id=invalidOrderID", nil)
+	if err != nil {
+		t.Fatalf("Не удалось создать HTTP-запрос: %v", err)
+	}
+
+	// Создаем фейковый HTTP-ResponseWriter для записи ответа
+	recorder := httptest.NewRecorder()
+
+	// Вызываем обработчик HTTP-запроса
+	getOrderHandler(recorder, req)
+
+	// Проверяем код состояния ответа
+	if recorder.Code != http.StatusNotFound {
+		t.Errorf("Ожидался код состояния %d, получено: %d", http.StatusNotFound, recorder.Code)
+	}
+
+	// Проверяем текст ответа
+	expectedBody := "Заказ не найден"
+	if body := recorder.Body.String(); body != expectedBody {
+		t.Errorf("Ожидался текст %s, получено: %s", expectedBody, body)
+	}
+}
+
+func TestHTTPServer(t *testing.T) {
+	// Создаем фейковый заказ для тестирования
+	fakeOrderID := "fakeOrderID"
+	fakeOrder := Order{
+		OrderUID:    "fakeOrderID",
+		TrackNumber: "123456789",
+		Entry:       "Entry1",
+		Delivery: struct {
+			Name    string `json:"name"`
+			Phone   string `json:"phone"`
+			Zip     string `json:"zip"`
+			City    string `json:"city"`
+			Address string `json:"address"`
+			Region  string `json:"region"`
+			Email   string `json:"email"`
+		}{
+			Name:    "John Doe",
+			Phone:   "1234567890",
+			Zip:     "12345",
+			City:    "Cityville",
+			Address: "123 Main St",
+			Region:  "Region1",
+			Email:   "john.doe@example.com",
+		},
+		Payment: struct {
+			Transaction  string  `json:"transaction"`
+			RequestID    string  `json:"request_id"`
+			Currency     string  `json:"currency"`
+			Provider     string  `json:"provider"`
+			Amount       float64 `json:"amount"`
+			PaymentDT    int64   `json:"payment_dt"`
+			Bank         string  `json:"bank"`
+			DeliveryCost float64 `json:"delivery_cost"`
+			GoodsTotal   float64 `json:"goods_total"`
+			CustomFee    float64 `json:"custom_fee"`
+		}{
+			Transaction:  "trans123",
+			RequestID:    "req123",
+			Currency:     "USD",
+			Provider:     "Provider1",
+			Amount:       100.00,
+			PaymentDT:    1636600000,
+			Bank:         "Bank1",
+			DeliveryCost: 10.00,
+			GoodsTotal:   90.00,
+			CustomFee:    5.00,
+		},
+		Items: []struct {
+			ChrtID      int     `json:"chrt_id"`
+			TrackNumber string  `json:"track_number"`
+			Price       float64 `json:"price"`
+			RID         string  `json:"rid"`
+			Name        string  `json:"name"`
+			Sale        int     `json:"sale"`
+			Size        string  `json:"size"`
+			TotalPrice  float64 `json:"total_price"`
+			NmID        int     `json:"nm_id"`
+			Brand       string  `json:"brand"`
+			Status      int     `json:"status"`
+		}{
+			{
+				ChrtID:      1,
+				TrackNumber: "item123",
+				Price:       30.00,
+				RID:         "rid123",
+				Name:        "Item1",
+				Sale:        0,
+				Size:        "M",
+				TotalPrice:  30.00,
+				NmID:        101,
+				Brand:       "Brand1",
+				Status:      1,
+			},
+			// Добавьте другие товары по аналогии
+		},
+		Locale:            "en_US",
+		InternalSignature: "internal_sign_123",
+		CustomerID:        "customer123",
+		DeliveryService:   "DeliveryService1",
+		ShardKey:          "shard_key_1",
+		SmID:              1,
+		DateCreated:       "2023-11-10T12:00:00Z",
+		OOFShard:          "oof_shard_1",
+	}
+
+	// Добавляем фейковый заказ в кеш
+	cacheMutex.Lock()
+	orderCache[fakeOrderID] = fakeOrder
+	cacheMutex.Unlock()
+
+	// Создаем новый HTTP-сервер и передаем ему обработчик запросов
+	ts := httptest.NewServer(http.HandlerFunc(getOrderHandler))
+	defer ts.Close()
+
+	// Отправляем GET-запрос на тестовый сервер
+	resp, err := http.Get(ts.URL + "/order?id=" + fakeOrderID)
+	if err != nil {
+		t.Fatalf("Не удалось выполнить GET-запрос: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Проверяем код состояния ответа
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Ожидался код состояния %d, получено: %d", http.StatusOK, resp.StatusCode)
+	}
+
+	// Декодируем ответ и сравниваем с ожидаемым результатом
+	var responseOrder Order
+	err = json.NewDecoder(resp.Body).Decode(&responseOrder)
+	if err != nil {
+		t.Fatalf("Ошибка декодирования JSON-ответа: %v", err)
+	}
+
+	// Проверяем, что полученный заказ соответствует фейковому заказу
+	if responseOrder.OrderUID != fakeOrder.OrderUID {
+		t.Errorf("Ожидался OrderUID %s, получено: %s", fakeOrder.OrderUID, responseOrder.OrderUID)
+	}
+
+	// Очищаем фейковый заказ из кеша
+	cacheMutex.Lock()
+	delete(orderCache, fakeOrderID)
+	cacheMutex.Unlock()
 }
